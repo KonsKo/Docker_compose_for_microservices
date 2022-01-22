@@ -1,6 +1,18 @@
 # Docker compose packet
 
-## Create and run all services except monitored machines
+# Create and run all services except monitored machines
+
+This docker-composed project created for microservice architecture (hereinafter in text as `application`).
+
+Main application task is remote controlling of Windows machines via PowerShell by SSH. Event logs for every PC processed via WinLogBeat and Logstash.
+Project includes:
+- 5 python services
+- Web server
+- Logstash instance
+- PostgreSQL instance
+- RabbitMQ instanse as broker for services
+
+Names of files and services was changed and some unrelated data such pipelines and configs were removed.
 
 ### Preparing to run:
 
