@@ -1,0 +1,14 @@
+FROM python:3.7
+
+ARG PIP_PROXY
+
+RUN apt-get install libpq-dev
+
+WORKDIR /service_3
+
+COPY /code/service_3/ .
+
+RUN pip install --upgrade pip setuptools wheel
+RUN pip install -r requirements.txt
+
+CMD python service_3 -C service_3.json -s service_3

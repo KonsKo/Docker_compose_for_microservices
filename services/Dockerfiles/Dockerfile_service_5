@@ -1,0 +1,40 @@
+FROM ubuntu:20.04
+
+ARG USERNAME
+ARG PIP_PROXY
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set up if proxy needed
+ENV http_proxy http://212.74.231.170:8080/
+
+RUN apt-get update
+RUN apt-get install -y python3 python3-pip openssh-client wget apt-transport-https software-properties-common
+
+COPY /ubuntu/powershell-lts.deb .
+RUN dpkg -i powershell-lts.deb
+RUN apt-get install -f
+
+RUN useradd -ms /bin/bash ${USERNAME}
+RUN mkdir /home/${USERNAME}/.ssh/
+RUN usermod -aG sudo ${USERNAME}
+
+USER ${USERNAME}
+
+COPY /ubuntu/.ssh/id_rsa /home/${USERNAME}/.ssh/id_rsa
+COPY /ubuntu/.ssh/id_rsa.pub /home/${USERNAME}/.ssh/id_rsa.pub
+COPY /ubuntu/.ssh/known_hosts /home/${USERNAME}/.ssh/known_hosts
+
+RUN mkdir /home/${USERNAME}/service_5/
+RUN mkdir /home/${USERNAME}/service_5/logs/
+RUN chown -R ${USERNAME} /home/${USERNAME}/service_5/*
+RUN chmod -R 777 /home/${USERNAME}/service_5/
+
+WORKDIR /home/${USERNAME}/service_5/
+
+COPY /services/code/service_5/ .
+
+RUN pip install --upgrade pip setuptools wheel
+RUN pip install -r requirements.txt
+
+CMD python3 service_5 -C service_5.json -s service_5
+

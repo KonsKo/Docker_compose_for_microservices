@@ -1,0 +1,251 @@
+
+services:
+    logstash:
+        image: docker.elastic.co/logstash/logstash:7.14.0
+        container_name: 'logstash'
+        volumes:
+            - type: bind
+              source: ./logstash/config/logstash.yml
+              target: /usr/share/logstash/config/logstash.yml
+              read_only: true
+            - type: bind
+              source: ./logstash/pipeline
+              target: /usr/share/logstash/pipeline
+              read_only: true
+        ports:
+            - 5044:5044
+        networks:
+          - network_1
+
+    rabbitmq:
+        image: rabbitmq:3.7.8-management
+        env_file:
+          - .env
+        container_name: 'rabbitmq'
+        environment:
+            RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+            RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+        ports:
+            - 5672:5672
+            - 15672:15672
+        networks:
+          - network_1
+
+    postgresql:
+        image: postgres:11-alpine
+        env_file:
+            - .env
+        volumes:
+            - type: bind
+              source: ./postgresql/init_db.sql
+              target: /init_db.sql
+              read_only: true
+            - type: bind
+              source: ./postgresql/init_db.sql
+              target: /docker-entrypoint-initdb.d/init.sql
+            - pgdata:/var/lib/postgresql/data
+        container_name: 'postgresql'
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+        ports:
+          - 5430:5432
+        networks:
+          - network_1
+
+    service_5:
+        env_file:
+          - .env
+        restart: always
+        build:
+            context: .
+            dockerfile: ./services/Dockerfiles/Dockerfile_service_5
+            args:
+              USERNAME: ${USERNAME}
+              PIP_PROXY: ${PIP_PROXY}
+        volumes:
+            - type: bind
+              source: ./services/conf/service_5.json
+              target: /home/${USERNAME}/service_5/service_5.json
+              read_only: true
+            - type: bind
+              source: ./services/conf/routes.json
+              target: /home/${USERNAME}/service_5/routes.json
+              read_only: true
+            - type: bind
+              source: ./services/logs/
+              target: /home/${USERNAME}/service_5/logs/
+            - type: bind
+              source: ./ubuntu/passwd
+              target: /etc/passwd
+        container_name: service_5
+        depends_on:
+          - logstash
+          - rabbitmq
+          - postgresql
+          - web_app
+        networks:
+          - network_1
+
+    service_1:
+        env_file:
+          - .env
+        restart: always
+        build:
+            context: services/
+            dockerfile: Dockerfiles/Dockerfile_service_1
+            args:
+              PIP_PROXY: ${PIP_PROXY}
+        volumes:
+            - type: bind
+              source: ./services/conf/service_1.json
+              target: /service_1/service_1.json
+              read_only: true
+            - type: bind
+              source: ./services/conf/routes.json
+              target: /service_1/routes.json
+              read_only: true
+            - type: bind
+              source: ./services/logs/
+              target: /service_1/logs
+        container_name: service_1
+        networks:
+          - network_1
+        depends_on:
+          - logstash
+          - rabbitmq
+          - postgresql
+          - web_app
+
+    service_2:
+        env_file:
+          - .env
+        restart: always
+        build:
+            context: .
+            dockerfile: ./services/Dockerfiles/Dockerfile_service_2
+            args:
+              USERNAME: ${USERNAME}
+              PIP_PROXY: ${PIP_PROXY}
+        volumes:
+            - type: bind
+              source: ./services/conf/service_2.json
+              target: /home/${USERNAME}/service_2/service_2.json
+              read_only: true
+            - type: bind
+              source: ./services/conf/routes.json
+              target: /home/${USERNAME}/service_2/routes.json
+              read_only: true
+            - type: bind
+              source: ./services/logs/
+              target: /home/${USERNAME}/service_2/logs/
+            - type: bind
+              source: ./ubuntu/passwd
+              target: /etc/passwd
+        container_name: service_2
+        depends_on:
+          - logstash
+          - rabbitmq
+          - postgresql
+          - web_app
+        networks:
+            - network_1
+
+    service_3:
+        env_file:
+          - .env
+        restart: always
+        build:
+            context: services/
+            dockerfile: Dockerfiles/Dockerfile_service_3
+            args:
+              PIP_PROXY: ${PIP_PROXY}
+        volumes:
+            - type: bind
+              source: ./services/conf/service_3.json
+              target: /service_3/service_3.json
+              read_only: true
+            - type: bind
+              source: ./services/conf/routes.json
+              target: /service_3/routes.json
+              read_only: true
+            - type: bind
+              source: ./services/logs/
+              target: /service_3/logs
+        container_name: service_3
+        depends_on:
+          - logstash
+          - rabbitmq
+          - postgresql
+          - web_app
+        networks:
+            - network_1
+
+    service_4:
+        env_file:
+          - .env
+        restart: always
+        ports:
+          - 8050:8050
+        build:
+            context: services/
+            dockerfile: Dockerfiles/Dockerfile_service_4
+            args:
+              PIP_PROXY: ${PIP_PROXY}
+        volumes:
+            - type: bind
+              source: ./services/conf/service_4.json
+              target: /service_4/service_4.json
+              read_only: true
+            - type: bind
+              source: ./services/conf/routes.json
+              target: /service_4/routes.json
+              read_only: true
+            - type: bind
+              source: ./services/logs/
+              target: /service_4/logs
+        container_name: service_4
+        depends_on:
+          - logstash
+          - rabbitmq
+          - postgresql
+          - web_app
+        networks:
+            - network_1
+
+    web_app:
+        env_file:
+          - .env
+        restart: always
+        ports:
+          - 8060:8060
+        build:
+          context: services/
+          dockerfile: Dockerfiles/Dockerfile_web
+          args:
+            PIP_PROXY: ${PIP_PROXY}
+        command: sh -c "
+          sleep 30 &&
+          python main.py"
+        volumes:
+          - type: bind
+            source: ./services/conf/configs_web_app
+            target: /web_app/configs
+            read_only: true
+          - type: bind
+            source: ./services/logs/
+            target: /web_app/logs
+        container_name: web_app
+        depends_on:
+          - rabbitmq
+          - postgresql
+        networks:
+          - network_1
+
+volumes:
+     pgdata:
+
+networks:
+    network_1:
+        driver: bridge
