@@ -2,8 +2,6 @@
 
 ## Create and run all services except monitored machines
 
-There is powershell distributive inside `/ubuntu/powershell-lts.deb`
-
 ### Preparing to run:
 
 1. Copy services codes to according directories `/services/code/<service_name>/`
